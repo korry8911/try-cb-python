@@ -15,7 +15,20 @@ from couchbase.exceptions import NotFoundError, CouchbaseNetworkError, \
 import couchbase.fulltext as FT
 import couchbase.subdocument as SD
 
-CONNSTR = 'couchbase://localhost/travel-sample'
+from kubernetes import client, config
+
+config.load_incluster_config()
+v1 = client.CoreV1Api()
+print("Finding Couchbase Nodes:")
+ret = v1.list_pod_for_all_namespaces(watch=False)
+cbip = []
+for i in ret.items:
+    print("%s\t%s\t%s" %
+          (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
+    if 'cb-example' in i.metadata.name:
+        cbip.append(i.status.pod_ip)
+
+CONNSTR = 'couchbase://' + cbip[0] + '/travel-sample'
 PASSWORD = ''
 
 app = Flask(__name__, static_url_path='/static')
