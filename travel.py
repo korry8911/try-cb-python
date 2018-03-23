@@ -16,6 +16,19 @@ from couchbase.exceptions import NotFoundError, CouchbaseNetworkError, \
 import couchbase.fulltext as FT
 import couchbase.subdocument as SD
 
+from kubernetes import client, config
+
+config.load_incluster_config()
+v1 = client.CoreV1Api()
+print("Finding Couchbase Nodes:")
+ret = v1.list_pod_for_all_namespaces(watch=False)
+cbip = []
+for i in ret.items:
+    print("%s\t%s\t%s" %
+          (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
+    if 'cb-example' in i.metadata.name:
+        cbip.append(i.status.pod_ip)
+
 # For Couchbase Server 5.0 there must be a username and password
 # User must have full access to read/write bucket/data and
 # Read access for Query and Search
@@ -39,7 +52,7 @@ args = parser.parse_args()
 if args.cluster:
         CONNSTR = "couchbase://" + args.cluster + "/travel-sample"
 else:
-        CONNSTR = "couchbase://localhost/travel-sample"
+        CONNSTR = "couchbase://" + cbip[0] + "/travel-sample"
 if args.user:
         CONNSTR = CONNSTR + "?username=" + args.user
 else:
